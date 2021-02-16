@@ -1,54 +1,71 @@
-var dog, dogImg, dogImg1;
-var database;
-var foodS, foodStock;
+var dog, happyDog, database, foodStock, foodS, feedDog, addFood, dogImg;
+var fedTime, lastFed;
+//Create variables here
 
-function preload(){
-   dogImg = loadImage("Images/Dog.png");
-   dogImg1 = loadImage("Images/happy dog.png");
-  }
+function preload() {
+  dogimg = loadImage("images/dogImg.png");
+  happyDog = loadImage("images/dogImg1.png");
+  //load images here
+}
 
-//Function to set initial environment
 function setup() {
+  createCanvas(1000, 500);
   database = firebase.database();
-  createCanvas(500,500);
 
-  dog = createSprite(250,300,150,150);
-  dog.addImage(dogImg);
-  dog.scale = 0.15;
+  foodobject = new Food();
+  dog = createSprite(800, 250, 10, 10);
+  dog.addImage(dogimg);
+  dog.scale = 0.2;
 
-  foodStock=database.ref('Food');
-  foodStock.on("value", readStock);
-  textSize(20); 
+  foodStock = database.ref("Food");
+  foodStock.on("value", readFood);
+
+  fedTime = database.ref("FeedTime");
+  fedTime.on("value", (data) => {
+    lastFed = data.val();
+  });
 }
 
-// function to display UI
 function draw() {
-  background("pink");
- 
-  if(keyWentDown(UP_ARROW)){
-    writeStock(foodS);
-    dog.addImage(dogImg1);
-  }
-
+  background("green");
   drawSprites();
-  fill(255,255,254);
-  stroke("lightblue");
-  text("Food remaining : " + foodS, 170, 200);
-  textSize(13);
-  text("Note: Press UP_ARROW Key To Feed Cherry Milk!", 130, 10, 300, 20);
+
+  foodobject.display();
+  feedDog = createButton("FEED DOG");
+  feedDog.position(500, 100);
+  feedDog.mousePressed(FeedDog);
+  addFood = createButton("ADD FOOD");
+  addFood.position(400, 100);
+  addFood.mousePressed(AddFood);
+
+  fill(255, 255, 254);
+  textSize(15);
+  if (lastFed >= 12) {
+    text("Last Fed : " + (lastFed % 12) + "PM", 350, 30);
+  } else if (lastFed === 0) {
+    text("Last Fed : " + (lastFed % 12) + "PM", 350, 30);
+  } else {
+    text("Last Fed : " + (lastFed % 12) + " AM", 350, 30);
+  }
 }
-//Function to read values from DB
-function readStock(data){
+
+function readFood(data) {
   foodS = data.val();
+  foodobject.updateFoodStock(foodS);
 }
-//Function to write values in DB
-function writeStock(x){
-  if(x <= 0){
-    x = 0;
-  }else{
-    x = x - 1;
-  } 
-  database.ref('/').update({
-    Food : x
-  })
+
+function AddFood() {
+  foodS++;
+  database.ref("/").update({
+    Food: foodS,
+  });
+}
+
+function FeedDog() {
+  dog.addImage(happyDog);
+  foodobject.updateFoodStock(foodobject.getFoodStock() - 1);
+  database.ref("/").update({
+    Food: foodobject.getFoodStock(),
+    FeedTime: hour(),
+  });
 }
